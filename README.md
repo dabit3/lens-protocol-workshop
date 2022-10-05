@@ -154,6 +154,57 @@ export const exploreProfiles = `
 `
 ```
 
+### Fetching getPublications data
+
+Next, we'll create a query to fetch getPublications for each user.
+
+To do so, create a new query in `api.js` with the following code:
+
+```javascript
+export const getPublications = `
+  query Publications($id: ProfileId!, $limit: LimitScalar) {
+    publications(request: {
+      profileId: $id,
+      publicationTypes: [POST],
+      limit: $limit
+    }) {
+      items {
+        __typename 
+        ... on Post {
+          ...PostFields
+        }
+      }
+    }
+  }
+  fragment PostFields on Post {
+    id
+    metadata {
+      ...MetadataOutputFields
+    }
+    createdAt
+  }
+  fragment MetadataOutputFields on MetadataOutput {
+    name
+    description
+    content
+    media {
+      original {
+        ...MediaFields
+      }
+    }
+    attributes {
+      displayType
+      traitType
+      value
+    }
+  }
+  fragment MediaFields on Media {
+    url
+    mimeType
+  }
+`
+```
+
 ## Index.js
 
 Next, let's query for profiles and render then in our app.
