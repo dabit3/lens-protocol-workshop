@@ -154,7 +154,7 @@ export const exploreProfiles = `
 `
 ```
 
-### Fetching getPublications data
+### Fetching publication data
 
 Next, we'll create a query to fetch getPublications for each user.
 
