@@ -156,7 +156,7 @@ export const exploreProfiles = `
 
 ### Fetching publication data
 
-Next, we'll create a query to fetch getPublications for each user.
+Next, we'll create a query to fetch publications for each user.
 
 To do so, create a new query in `api.js` with the following code:
 
