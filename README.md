@@ -1,6 +1,6 @@
 ## Lens Protocol Workshop
 
-In this video you'll learn how to use Next.js and Lens Protocol to build out a basic social media application.
+In this workshop you'll learn how to use Next.js and Lens Protocol to build out a basic social media application.
 
 ### Getting started
 
