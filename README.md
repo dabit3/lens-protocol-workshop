@@ -169,19 +169,17 @@ export default function Home() {
           {
             profiles.map((profile, index) => (
               <Link href={`/profile/${profile.id}`} key={index}>
-                <a>
-                  {
-                    profile.picture ? (
-                      <Image
-                        src={profile.picture.original?.url || "https://source.unsplash.com/random/200x200?sig=1"}
-                        width="52px"
-                        height="52px"
-                      />
-                    ) : <div style={blankPhotoStyle} />
-                  }
-                  <p>{profile.handle}</p>
-                  <p >{profile.publication?.metadata.content}</p>
-                </a>
+                {
+                  profile.picture ? (
+                    <Image
+                      src={profile.picture.original?.url || "https://source.unsplash.com/random/200x200?sig=1"}
+                      width="52px"
+                      height="52px"
+                    />
+                  ) : <div style={blankPhotoStyle} />
+                }
+                <p>{profile.handle}</p>
+                <p >{profile.publication?.metadata.content}</p>
               </Link>
             ))
           }
