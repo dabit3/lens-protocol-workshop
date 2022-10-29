@@ -223,8 +223,8 @@ Open `api.js` and add the following query:
 
 ```javascript
 export const getProfile = `
-  query Profile($handle: Handle!) {
-    profile(request: { handle: $handle }) {
+  query Profile($id: ProfileId!) {
+    profile(request: { profileId: $id }) {
       id
       name
       bio
@@ -248,7 +248,7 @@ Next, we'll need the ABI from the contract we'll be interacting with to allow us
 
 Create a file named `abi.json` at the root of the project.
 
-Next, copy the ABI located [here](https://polygonscan.com/address/0x20f4D7DdeE23029048C53B42dc73A02De19F1c9E#ddExportABI) into this file and save it.
+Next, copy the ABI from the [contract](https://polygonscan.com/address/0x20f4D7DdeE23029048C53B42dc73A02De19F1c9E#ddExportABI) located [here](https://gist.github.com/dabit3/71d8fac2ea4081f32903cb479ea2881a) into this file and save it.
 
 ### Profile view
 
@@ -382,6 +382,7 @@ export default function Profile() {
 const profileContainerStyle = {
   display: 'flex',
   flexDirection: 'column',
-  alignItems: 'flex-start'
+  alignItems: 'flex-start',
+  padding: '20px'
 }
 ```
