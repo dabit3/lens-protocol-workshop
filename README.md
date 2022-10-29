@@ -173,8 +173,8 @@ export default function Home() {
                   profile.picture ? (
                     <Image
                       src={profile.picture.original?.url || "https://source.unsplash.com/random/200x200?sig=1"}
-                      width="52px"
-                      height="52px"
+                      width="52"
+                      height="52"
                     />
                   ) : <div style={blankPhotoStyle} />
                 }
@@ -357,8 +357,8 @@ export default function Profile() {
           )
         }
         <Image
-          width="200px"
-          height="200px"
+          width="200"
+          height="200"
           src={profile.picture?.original?.url}
         />
         <p>{profile.handle}</p>
