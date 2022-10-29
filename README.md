@@ -55,7 +55,7 @@ export const client = new createClient({
 
 This will allow us to call the GraphQL endpoint using URQL, a GraphQL client.
 
-Next, we'll create our first query. This query will return profiles recommended to us by the Lens API.
+Next, we'll create our first query, [`exploreProfiles`](https://docs.lens.xyz/docs/explore-profiles). This query will return profiles recommended to us by the Lens API.
 
 In `api.js`, add the following code at the bottom of the file:
 
@@ -67,87 +67,17 @@ export const exploreProfiles = `
         id
         name
         bio
-        isDefault
-        attributes {
-          displayType
-          traitType
-          key
-          value
-        }
-        followNftAddress
-        metadata
         handle
         picture {
-          ... on NftImage {
-            contractAddress
-            tokenId
-            uri
-            chainId
-            verified
-          }
           ... on MediaSet {
             original {
               url
-              mimeType
             }
           }
-        }
-        coverPicture {
-          ... on NftImage {
-            contractAddress
-            tokenId
-            uri
-            chainId
-            verified
-          }
-          ... on MediaSet {
-            original {
-              url
-              mimeType
-            }
-          }
-        }
-        ownedBy
-        dispatcher {
-          address
-          canUseRelay
         }
         stats {
           totalFollowers
-          totalFollowing
-          totalPosts
-          totalComments
-          totalMirrors
-          totalPublications
-          totalCollects
         }
-        followModule {
-          ... on FeeFollowModuleSettings {
-            type
-            contractAddress
-            amount {
-              asset {
-                name
-                symbol
-                decimals
-                address
-              }
-              value
-            }
-            recipient
-          }
-          ... on ProfileFollowModuleSettings {
-          type
-          }
-          ... on RevertFollowModuleSettings {
-          type
-          }
-        }
-      }
-      pageInfo {
-        prev
-        next
-        totalCount
       }
     }
   }
@@ -157,6 +87,8 @@ export const exploreProfiles = `
 ### Fetching publication data
 
 Next, we'll create a query to fetch publications for each user.
+
+For this data we'll use the [`publication`](https://docs.lens.xyz/docs/get-publication) query.
 
 To do so, create a new query in `api.js` with the following code:
 
@@ -184,23 +116,7 @@ export const getPublications = `
     createdAt
   }
   fragment MetadataOutputFields on MetadataOutput {
-    name
-    description
     content
-    media {
-      original {
-        ...MediaFields
-      }
-    }
-    attributes {
-      displayType
-      traitType
-      value
-    }
-  }
-  fragment MediaFields on Media {
-    url
-    mimeType
   }
 `
 ```
@@ -303,94 +219,28 @@ This functionality does not yet exist, so let's create it.
 
 First, we'll need to create a new GraphQL query for getting a profile.
 
+For this data we'll use the [`getProfile`](https://docs.lens.xyz/docs/get-profile) query:
+
 Open `api.js` and add the following query:
 
 ```javascript
 export const getProfile = `
-query Profile($id: ProfileId!) {
-  profile(request: { profileId: $id }) {
-    id
-    name
-    bio
-    attributes {
-      displayType
-      traitType
-      key
-      value
-    }
-    followNftAddress
-    metadata
-    isDefault
-    picture {
-      ... on NftImage {
-        contractAddress
-        tokenId
-        uri
-        verified
-      }
-      ... on MediaSet {
-        original {
-          url
-          mimeType
-        }
-      }
-      __typename
-    }
-    handle
-    coverPicture {
-      ... on NftImage {
-        contractAddress
-        tokenId
-        uri
-        verified
-      }
-      ... on MediaSet {
-        original {
-          url
-          mimeType
-        }
-      }
-      __typename
-    }
-    ownedBy
-    dispatcher {
-      address
-      canUseRelay
-    }
-    stats {
-      totalFollowers
-      totalFollowing
-      totalPosts
-      totalComments
-      totalMirrors
-      totalPublications
-      totalCollects
-    }
-    followModule {
-      ... on FeeFollowModuleSettings {
-        type
-        amount {
-          asset {
-            symbol
-            name
-            decimals
-            address
+  query Profile($handle: Handle!) {
+    profile(request: { handle: $handle }) {
+      id
+      name
+      bio
+      picture {
+        ... on MediaSet {
+          original {
+            url
           }
-          value
         }
-        recipient
       }
-      ... on ProfileFollowModuleSettings {
-        type
-      }
-      ... on RevertFollowModuleSettings {
-        type
-      }
+      handle
     }
   }
-}
 `
-
 ```
 
 
