@@ -8,6 +8,12 @@ To get started, create a new Next.js application:
 
 ```sh
 npx create-next-app lens-app
+
+✔ Would you like to use TypeScript with this project? No
+✔ Would you like to use ESLint with this project? Yes
+✔ Would you like to use `src/` directory with this project? No
+✔ Would you like to use experimental `app/` directory with this project? Yes
+✔ What import alias would you like configured? … @/*
 ```
 
 Next, change into the new directory and install the following dependencies:
@@ -15,12 +21,12 @@ Next, change into the new directory and install the following dependencies:
 ```sh
 cd lens-app
 
-npm install ethers graphql urql
+npm install ethers@5.7.2 graphql urql
 ```
 
 Now we need to configure Next.js to allow IPFS and other file sources. To do so, open `next.config.js` and replace what's there with the following code:
 
-```
+```javascript
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -121,20 +127,21 @@ export const getPublications = `
 `
 ```
 
-## Index.js
+## app/page.js
 
 Next, let's query for profiles and render then in our app.
 
-To do so, open `index.js` and add the following code:
+To do so, open `app/page.js` and add the following code:
 
 ```javascript
+'use client'
+
 import { useState, useEffect } from 'react'
 import {
   client, exploreProfiles, getPublications
 } from '../api'
 import Image from 'next/image'
 import Link from 'next/link'
-import styles from '../styles/Home.module.css'
 
 export default function Home() {
   const [profiles, setProfiles] = useState([])
@@ -164,28 +171,39 @@ export default function Home() {
   }
   console.log({ profiles })
   return (
-    <div className={styles.container}>
-      <div>
-          {
-            profiles.map((profile, index) => (
-              <Link href={`/profile/${profile.id}`} key={index}>
-                {
-                  profile.picture ? (
-                    <Image
-                      src={profile.picture.original?.url || "https://source.unsplash.com/random/200x200?sig=1"}
-                      width="52"
-                      height="52"
-                    />
-                  ) : <div style={blankPhotoStyle} />
-                }
-                <p>{profile.handle}</p>
-                <p >{profile.publication?.metadata.content}</p>
-              </Link>
-            ))
-          }
-        </div>
+    <div style={styles.container}>
+      <h1>My Lens App</h1>
+      {
+        profiles.map((profile, index) => (
+          <Link href={`/profile/${profile.id}`} key={index}>
+            <div style={styles.profile}>
+              {
+                profile.picture ? (
+                  <Image
+                    src={profile.picture.original?.url || "https://source.unsplash.com/random/200x200?sig=1"}
+                    width="52"
+                    height="52"
+                    alt={profile.handle}
+                  />
+                ) : <div style={blankPhotoStyle} />
+              }
+              <h3>{profile.handle}</h3>
+              <p >{profile.publication?.metadata.content}</p>
+            </div>
+          </Link>
+        ))
+      }
     </div>
   )
+}
+
+const styles = {
+  container: {
+    padding: '40px 80px'
+  },
+  profile: {
+    margin: '30px 0px'
+  }
 }
 ```
 
@@ -252,17 +270,24 @@ Next, copy the ABI from the [contract](https://polygonscan.com/address/0x20f4D7D
 
 ### Profile view
 
-In the `pages` directory, create a new folder named `profile` and a file in that directory named `[id].js`.
+In the `app` directory, create a new folder named `profile`.
+
+In the `profile` directory create a new folder named `[id]`.
+
+In the `[id]` folder, create a new file named `page.js`.
 
 In this file, add the following code:
 
 ```javascript
+// app/profile/[id]/page.js
+'use client'
+
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/router'
+import { usePathname } from 'next/navigation'
 import { ethers } from 'ethers'
 import Image from 'next/image'
-import { client, getPublications, getProfile } from '../../api'
-import ABI from '../../abi.json'
+import { client, getPublications, getProfile } from '../../../api'
+import ABI from '../../../abi.json'
 
 const CONTRACT_ADDRESS = '0xDb46d1Dc155634FbC732f92E853b10B288AD5a1d'
 
@@ -271,8 +296,9 @@ export default function Profile() {
   const [connected, setConnected] = useState()
   const [publications, setPublications] = useState([])
   const [account, setAccount] = useState('')
-  const router = useRouter()
-  const { id } = router.query
+
+  const pathName = usePathname()
+  const id = pathName?.split('/')[2]
 
   useEffect(() => {
     if (id) {
@@ -282,9 +308,7 @@ export default function Profile() {
   }, [id])
 
   async function checkConnection() {
-    const provider = new ethers.providers.Web3Provider(
-      (window).ethereum
-    )
+    const provider = new ethers.providers.Web3Provider(window.ethereum)
     const addresses = await provider.listAccounts();
     if (addresses.length) {
       setConnected(true)
@@ -359,19 +383,23 @@ export default function Profile() {
         <Image
           width="200"
           height="200"
+          alt={profile.handle}
           src={profile.picture?.original?.url}
         />
-        <p>{profile.handle}</p>
+        <h1>{profile.handle}</h1>
         {
             publications.map((pub, index) => (
-              <div key={index}>
+              <div key={index} style={publicationContainerStyle}>
                 <p>{pub.metadata.content}</p>
               </div>
             ))
         }
         {
           connected && (
-            <button onClick={followUser}>Follow User</button>
+            <button
+              style={buttonStyle}
+              onClick={followUser}
+            >Follow {profile.handle}</button>
           )
         }
       </div>
@@ -379,10 +407,23 @@ export default function Profile() {
   )
 }
 
+const buttonStyle = {
+  padding: '10px 30px',
+  backgroundColor: 'white',
+  color: 'rgba(0, 0, 0, .6)',
+  cursor: 'pointer',
+  borderRadius: '40px',
+  fontWeight: 'bold'
+}
+
+const publicationContainerStyle = {
+  padding: '20px 0px',
+}
+
 const profileContainerStyle = {
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'flex-start',
-  padding: '20px'
+  padding: '20px  60px'
 }
 ```
