@@ -438,3 +438,15 @@ To run the app, run the following command:
 ```sh
 npm run dev
 ```
+
+### Next Steps
+
+Now that you've built your first basic application, it's time to explore more of the Lens API!
+
+Consider diving into authentication, modules, or learning about gasless transactions and the dispatcher.
+
+Also consider adding the following features to your new app:
+
+- Following a user
+- Searching for users
+- Creating a post
