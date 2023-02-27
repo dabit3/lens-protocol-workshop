@@ -44,6 +44,8 @@ const nextConfig = {
     ],
   },
 }
+
+module.exports = nextConfig
 ```
 
 ### Creating the API
@@ -427,4 +429,12 @@ const profileContainerStyle = {
   alignItems: 'flex-start',
   padding: '20px  60px'
 }
+```
+
+### Testing it out
+
+To run the app, run the following command:
+
+```sh
+npm run dev
 ```
