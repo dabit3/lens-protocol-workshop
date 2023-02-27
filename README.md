@@ -29,6 +29,9 @@ Now we need to configure Next.js to allow IPFS and other file sources. To do so,
 ```javascript
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    appDir: true,
+  },
   reactStrictMode: true,
   swcMinify: true,
   images: {
@@ -41,8 +44,6 @@ const nextConfig = {
     ],
   },
 }
-
-module.exports = nextConfig
 ```
 
 ### Creating the API
