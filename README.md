@@ -439,6 +439,108 @@ To run the app, run the following command:
 npm run dev
 ```
 
+## Lens React Hooks
+
+The Lens [React Hooks](https://docs.lens.xyz/docs/sdk-react-intro) library makes it easy to use the Lens APIs without having to deal with any GraphQL libraries, queries, and mutations.
+
+Let's update our app to use this library.
+
+First, install WAGMI and Lens React Hooks:
+
+```sh
+npm install wagmi @lens-protocol/wagmi
+```
+
+Next, open `app/layout.js` and update the file with the folliwing code to configure both the Hooks library as well as WAGMI:
+
+```javascript
+import './globals.css'
+import { production } from '@lens-protocol/react'
+import { localStorage } from '@lens-protocol/react/web'
+import { bindings as wagmiBindings } from '@lens-protocol/wagmi'
+import { LensProvider } from '@lens-protocol/react'
+import { configureChains, createClient } from 'wagmi';
+import { mainnet, polygon } from 'wagmi/chains';
+import { publicProvider } from 'wagmi/providers/public'
+const { provider, webSocketProvider } = configureChains([polygon, mainnet], [publicProvider()])
+
+const client = createClient({
+  autoConnect: true,
+  provider,
+  webSocketProvider,
+});
+const lensConfig = {
+  bindings: wagmiBindings(),
+  environment: production,
+  storage: localStorage(),
+}
+
+export default function RootLayout({ children }) {
+  return (
+    <WagmiConfig client={client}>
+      <LensProvider config={lensConfig}>
+        <html lang="en">
+          {/*
+            <head /> will contain the components returned by the nearest parent
+            head.js. Find out more at https://beta.nextjs.org/docs/api-reference/file-conventions/head
+          */}
+          <head />
+          <body>{children}</body>
+        </html>
+      </LensProvider>
+    </WagmiConfig>
+  )
+}
+```
+
+Now we can update `app/page.js` to use the hooks library instead of using GraphQL:
+
+```javascript
+'use client'
+
+import Image from 'next/image'
+import Link from 'next/link'
+
+export default function Home() {
+  const { data: profiles } = useExploreProfiles(args)
+
+  return (
+    <div style={styles.container}>
+      <h1>My Lens App</h1>
+      {
+        profiles.map((profile, index) => (
+          <Link href={`/profile/${profile.id}`} key={index}>
+            <div style={styles.profile}>
+              {
+                profile.picture ? (
+                  <Image
+                    src={profile.picture.original?.url || "https://source.unsplash.com/random/200x200?sig=1"}
+                    width="52"
+                    height="52"
+                    alt={profile.handle}
+                  />
+                ) : <div style={blankPhotoStyle} />
+              }
+              <h3>{profile.handle}</h3>
+              <p >{profile.publication?.metadata.content}</p>
+            </div>
+          </Link>
+        ))
+      }
+    </div>
+  )
+}
+
+const styles = {
+  container: {
+    padding: '40px 80px'
+  },
+  profile: {
+    margin: '30px 0px'
+  }
+}
+```
+
 ### Next Steps
 
 Now that you've built your first basic application, it's time to explore more of the Lens API!
