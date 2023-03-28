@@ -380,7 +380,7 @@ export default function Profile() {
       <div style={profileContainerStyle}>
         {
           !connected && (
-            <button onClick={connectWallet}>Sign In</button>
+            <button style={buttonStyle} onClick={connectWallet}>Connect Wallet</button>
           )
         }
         <Image
