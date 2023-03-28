@@ -21,7 +21,7 @@ Next, change into the new directory and install the following dependencies:
 ```sh
 cd lens-app
 
-npm install ethers@5.7.2 graphql urql
+npm install ethers graphql urql
 ```
 
 Now we need to configure Next.js to allow IPFS and other file sources. To do so, open `next.config.js` and replace what's there with the following code:
@@ -311,7 +311,7 @@ export default function Profile() {
   }, [id])
 
   async function checkConnection() {
-    const provider = new ethers.providers.Web3Provider(window.ethereum)
+    const provider = new ethers.BrowserProvider(window.ethereum)
     const addresses = await provider.listAccounts();
     if (addresses.length) {
       setConnected(true)
@@ -353,7 +353,7 @@ export default function Profile() {
   }
 
   function getSigner() {
-    const provider = new ethers.providers.Web3Provider(window.ethereum)
+    const provider = new ethers.BrowserProvider(window.ethereum)
     return provider.getSigner();
   }
 
