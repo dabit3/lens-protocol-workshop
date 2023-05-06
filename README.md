@@ -21,7 +21,7 @@ Next, change into the new directory and install the following dependencies:
 ```sh
 cd lens-app
 
-npm install ethers graphql urql
+yarn add ethers graphql urql
 ```
 
 Now we need to configure Next.js to allow IPFS and other file sources. To do so, open `next.config.js` and replace what's there with the following code:
@@ -223,7 +223,7 @@ We then update the local state to save the profiles.
 To run the app, run the following command:
 
 ```sh
-npm run dev
+yarn dev
 ```
 
 ## Profile View
