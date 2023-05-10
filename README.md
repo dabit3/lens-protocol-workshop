@@ -9,11 +9,12 @@ To get started, create a new Next.js application:
 ```sh
 npx create-next-app lens-app
 
-✔ Would you like to use TypeScript with this project? No
+✔ Would you like to use TypeScript with this project? Yes
 ✔ Would you like to use ESLint with this project? Yes
+✔ Would you like to use Tailwind CSS with this project?  Yes
 ✔ Would you like to use `src/` directory with this project? No
-✔ Would you like to use experimental `app/` directory with this project? Yes
-✔ What import alias would you like configured? … @/*
+✔ Use App Router (recommended)? Yes
+✔ Would you like to customize the default import alias? No
 ```
 
 Next, change into the new directory and install the following dependencies:
@@ -21,7 +22,7 @@ Next, change into the new directory and install the following dependencies:
 ```sh
 cd lens-app
 
-npm install ethers graphql urql
+npm install @lens-protocol/react-web ethers@5 wagmi@0.12.13 @lens-protocol/wagmi
 ```
 
 Now we need to configure Next.js to allow IPFS and other file sources. To do so, open `next.config.js` and replace what's there with the following code:
@@ -40,6 +41,7 @@ const nextConfig = {
       'statics-polygon-lens-staging.s3.eu-west-1.amazonaws.com',
       'lens.infura-ipfs.io',
       'source.unsplash.com',
+      'arweave.net',
       ""
     ],
   },
@@ -48,150 +50,117 @@ const nextConfig = {
 module.exports = nextConfig
 ```
 
-### Creating the API
+## app/layout.tsx
 
-Next, create a new file named `api.js` in the root of the project and add the following code:
+Next, we want to configure our app to use the Lens SDK. 
 
-```javascript
-import { createClient } from 'urql'
+This is typically done at the entrypoint to the app, and only needs to be done once.
 
-const APIURL = "https://api.lens.dev"
+This is a decent amount of code, but once it's set up it makes using the SDK very easy in our components.
 
-export const client = new createClient({
-  url: APIURL
-})
-```
+Update `app/layout.tsx` with the following code:
 
-This will allow us to call the GraphQL endpoint using URQL, a GraphQL client.
-
-Next, we'll create our first query, [`exploreProfiles`](https://docs.lens.xyz/docs/explore-profiles). This query will return profiles recommended to us by the Lens API.
-
-In `api.js`, add the following code at the bottom of the file:
-
-```javascript
-export const exploreProfiles = `
-  query ExploreProfiles {
-    exploreProfiles(request: { sortCriteria: MOST_FOLLOWERS }) {
-      items {
-        id
-        name
-        bio
-        handle
-        picture {
-          ... on MediaSet {
-            original {
-              url
-            }
-          }
-        }
-        stats {
-          totalFollowers
-        }
-      }
-    }
-  }
-`
-```
-
-### Fetching publication data
-
-Next, we'll create a query to fetch publications for each user.
-
-For this data we'll use the [`publication`](https://docs.lens.xyz/docs/get-publication) query.
-
-To do so, create a new query in `api.js` with the following code:
-
-```javascript
-export const getPublications = `
-  query Publications($id: ProfileId!, $limit: LimitScalar) {
-    publications(request: {
-      profileId: $id,
-      publicationTypes: [POST],
-      limit: $limit
-    }) {
-      items {
-        __typename 
-        ... on Post {
-          ...PostFields
-        }
-      }
-    }
-  }
-  fragment PostFields on Post {
-    id
-    metadata {
-      ...MetadataOutputFields
-    }
-    createdAt
-  }
-  fragment MetadataOutputFields on MetadataOutput {
-    content
-  }
-`
-```
-
-## app/page.js
-
-Next, let's query for profiles and render then in our app.
-
-To do so, open `app/page.js` and add the following code:
-
-```javascript
+```tsx
 'use client'
+import './globals.css'
+import { configureChains, createClient, WagmiConfig } from 'wagmi'
+import { mainnet, polygon } from 'wagmi/chains'
+import { publicProvider } from 'wagmi/providers/public'
+import { LensProvider, LensConfig, production } from '@lens-protocol/react-web'
+import { bindings as wagmiBindings } from '@lens-protocol/wagmi'
+const { provider, webSocketProvider } = configureChains([polygon, mainnet], [publicProvider()])
 
-import { useState, useEffect } from 'react'
-import {
-  client, exploreProfiles, getPublications
-} from '../api'
+const client = createClient({
+  autoConnect: true,
+  provider,
+  webSocketProvider,
+});
+
+const lensConfig: LensConfig = {
+  bindings: wagmiBindings(),
+  environment: production,
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en">
+      <WagmiConfig client={client}>
+        <LensProvider config={lensConfig}>
+          <body>{children}</body>
+        </LensProvider>
+     </WagmiConfig>
+    </html>
+  )
+}
+```
+
+## format picture utility
+
+Next, we'll need a helper function to format the pictures coming back to use with IPFS and Arweave gateways. By default, we'll only have the hash.
+
+In the root directory, create a file named `utils.ts` and add the following code:
+
+```typescript
+// utils.ts
+export function formatPicture(picture: any) {
+  if (picture.__typename === 'MediaSet') {
+    if (picture.original.url.startsWith('ipfs://')) {
+      let result = picture.original.url.substring(7, picture.original.url.length)
+      return `http://lens.infura-ipfs.io/ipfs/${result}`
+    } else if (picture.original.url.startsWith('ar://')) {
+      let result = picture.original.url.substring(4, picture.original.url.length)
+      return `http://arweave.net/${result}`
+    } else {
+      return picture.original.url
+    }
+  } else {
+    return picture
+  }
+}
+```
+
+## app/page.tsx
+
+Next, let's query for profiles and render them in our app.
+
+To do so, open `app/page.tsx` and add the following code:
+
+```typescript
+// app/page.tsx
+'use client'
 import Image from 'next/image'
+import { useExploreProfiles } from '@lens-protocol/react-web'
 import Link from 'next/link'
+import { formatPicture } from '../utils'
 
 export default function Home() {
-  const [profiles, setProfiles] = useState([])
-  useEffect(() => {
-    fetchProfiles()
-  }, [])
-  async function fetchProfiles() {
-    try {
-      const response = await client.query(exploreProfiles).toPromise()
-      const profileData = await Promise.all(response.data.exploreProfiles.items.map(async profile => {
-        const pub = await client.query(getPublications, { id: profile.id, limit: 1 }).toPromise()
-        profile.publication = pub.data.publications.items[0]
-        let picture = profile.picture
-        if (picture && picture.original && picture.original.url) {
-          if (picture.original.url.startsWith('ipfs://')) {
-            let result = picture.original.url.substring(7, picture.original.url.length)
-            profile.picture.original.url = `http://lens.infura-ipfs.io/ipfs/${result}`
-          }
-        }
-        console.log('profile.picture: ', profile.picture)
-        return profile
-      }))
-      setProfiles(profileData)
-    } catch (err) {
-      console.log({ err })
-    }
-  }
-  console.log({ profiles })
+  const { data } = useExploreProfiles({
+    limit: 25
+  })
+  
   return (
-    <div style={styles.container}>
-      <h1>My Lens App</h1>
+    <div className='p-20'>
+      <h1 className='text-5xl'>My Lens App</h1>
       {
-        profiles.map((profile, index) => (
-          <Link href={`/profile/${profile.id}`} key={index}>
-            <div style={styles.profile}>
+        data?.map((profile, index) => (
+          <Link href={`/profile/${profile.handle}`} key={index}>
+            <div className='my-14'>
               {
-                profile.picture ? (
+                profile.picture && profile.picture.__typename === 'MediaSet' ? (
                   <Image
-                    src={profile.picture.original?.url || "https://source.unsplash.com/random/200x200?sig=1"}
-                    width="52"
-                    height="52"
+                    src={formatPicture(profile.picture)}
+                    width="120"
+                    height="120"
                     alt={profile.handle}
                   />
-                ) : <div style={blankPhotoStyle} />
+                ) : <div className="w-14 h-14 bg-slate-500	" />
               }
-              <h3>{profile.handle}</h3>
-              <p >{profile.publication?.metadata.content}</p>
+              <h3 className="text-3xl my-4">{profile.handle}</h3>
+              <p className="text-xl">{profile.bio}</p>
             </div>
           </Link>
         ))
@@ -200,23 +169,13 @@ export default function Home() {
   )
 }
 
-const styles = {
-  container: {
-    padding: '40px 80px'
-  },
-  profile: {
-    margin: '30px 0px'
-  }
-}
 ```
 
 #### What's happening?
 
-In `fetchProfiles`, we are calling the Lens API to fetch profiles and update the state.
+In `useExploreProfiles`, we are calling the Lens API to fetch a list of recommended profiles.
 
-Once the profiles come back, we then go back to the server to fetch the first post for each user and attach it to their profile.
-
-We then update the local state to save the profiles.
+The `formatPicture` function updates the image metadata to provide either an IPFS or Arweave gateway to each hash.
 
 ### Testing it out
 
@@ -234,34 +193,6 @@ We also want go give users a way to sign in and follow users.
 
 This functionality does not yet exist, so let's create it.
 
-### Updating the API
-
-First, we'll need to create a new GraphQL query for getting a profile.
-
-For this data we'll use the [`getProfile`](https://docs.lens.xyz/docs/get-profile) query:
-
-Open `api.js` and add the following query:
-
-```javascript
-export const getProfile = `
-  query Profile($id: ProfileId!) {
-    profile(request: { profileId: $id }) {
-      id
-      name
-      bio
-      picture {
-        ... on MediaSet {
-          original {
-            url
-          }
-        }
-      }
-      handle
-    }
-  }
-`
-```
-
 
 ### Adding the ABI
 
@@ -277,41 +208,42 @@ In the `app` directory, create a new folder named `profile`.
 
 In the `profile` directory create a new folder named `[id]`.
 
-In the `[id]` folder, create a new file named `page.js`.
+In the `[id]` folder, create a new file named `page.tsx`.
 
 In this file, add the following code:
 
-```javascript
-// app/profile/[id]/page.js
+```typescript
+// app/profile/[id]/page.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { ethers } from 'ethers'
 import Image from 'next/image'
-import { client, getPublications, getProfile } from '../../../api'
+import { useProfile, usePublications } from '@lens-protocol/react-web'
+import { formatPicture } from '../../../utils'
 import ABI from '../../../abi.json'
 
 const CONTRACT_ADDRESS = '0xDb46d1Dc155634FbC732f92E853b10B288AD5a1d'
 
 export default function Profile() {
-  const [profile, setProfile] = useState()
-  const [connected, setConnected] = useState()
-  const [publications, setPublications] = useState([])
+  const [connected, setConnected] = useState<boolean>(false)
   const [account, setAccount] = useState('')
 
   const pathName = usePathname()
-  const id = pathName?.split('/')[2]
+  const handle = pathName?.split('/')[2]
+
+  const { data: profile } = useProfile({ handle })
+
+  console.log('profile: ', profile)
 
   useEffect(() => {
-    if (id) {
-      fetchProfile()
-    }
     checkConnection()
-  }, [id])
+  }, [handle])
 
   async function checkConnection() {
-    const provider = new ethers.BrowserProvider(window.ethereum)
+    if (!window.ethereum) return
+    const provider = new ethers.providers.Web3Provider(window.ethereum as any)
     const addresses = await provider.listAccounts();
     if (addresses.length) {
       setConnected(true)
@@ -320,29 +252,8 @@ export default function Profile() {
     }
   }
 
-  async function fetchProfile() {
-    console.log({ id })
-    try {
-      const returnedProfile = await client.query(getProfile, { id }).toPromise();
-
-      const profileData = returnedProfile.data.profile
-      const picture = profileData.picture
-      if (picture && picture.original && picture.original.url) {
-        if (picture.original.url.startsWith('ipfs://')) {
-          let result = picture.original.url.substring(7, picture.original.url.length)
-          profileData.picture.original.url = `http://lens.infura-ipfs.io/ipfs/${result}`
-        }
-      }
-      setProfile(profileData)
-
-      const pubs = await client.query(getPublications, { id, limit: 50 }).toPromise()
-      setPublications(pubs.data.publications.items)
-    } catch (err) {
-      console.log('error fetching profile...', err)
-    }
-  }
-
   async function connectWallet() {
+    if (!window.ethereum) return
     const accounts = await window.ethereum.request({
       method: "eth_requestAccounts"
     })
@@ -353,11 +264,12 @@ export default function Profile() {
   }
 
   function getSigner() {
-    const provider = new ethers.BrowserProvider(window.ethereum)
+    const provider = new ethers.providers.Web3Provider(window.ethereum as any)
     return provider.getSigner();
   }
 
   async function followUser() {
+    if (!profile) return
     const contract = new ethers.Contract(
       CONTRACT_ADDRESS,
       ABI,
@@ -365,7 +277,7 @@ export default function Profile() {
     )
 
     try {
-      const tx = await contract.follow([id], [0x0])
+      const tx = await contract.follow([profile.id], [0x0])
       await tx.wait()
       console.log(`successfully followed ... ${profile.handle}`)
     } catch (err) {
@@ -377,30 +289,30 @@ export default function Profile() {
 
   return (
     <div>
-      <div style={profileContainerStyle}>
+      <div className="p-14">
         {
           !connected && (
-            <button style={buttonStyle} onClick={connectWallet}>Connect Wallet</button>
+            <button className="bg-white text-black px-14 py-4 rounded-full mb-4" onClick={connectWallet}>Connect Wallet</button>
           )
         }
-        <Image
-          width="200"
-          height="200"
-          alt={profile.handle}
-          src={profile.picture?.original?.url}
-        />
-        <h1>{profile.handle}</h1>
         {
-            publications.map((pub, index) => (
-              <div key={index} style={publicationContainerStyle}>
-                <p>{pub.metadata.content}</p>
-              </div>
-            ))
+          profile.picture?.__typename === 'MediaSet' && (
+            <Image
+              width="200"
+              height="200"
+              alt={profile.handle}
+              className='rounded-xl'
+              src={formatPicture(profile.picture)}
+            />
+          )
         }
+        <h1 className="text-3xl my-3">{profile.handle}</h1>
+        <h3 className="text-xl mb-4">{profile.bio}</h3>
+        <Publications profile={profile} />
         {
           connected && (
             <button
-              style={buttonStyle}
+              className="bg-white text-black px-14 py-4 rounded-full"
               onClick={followUser}
             >Follow {profile.handle}</button>
           )
@@ -410,25 +322,42 @@ export default function Profile() {
   )
 }
 
-const buttonStyle = {
-  padding: '10px 30px',
-  backgroundColor: 'white',
-  color: 'rgba(0, 0, 0, .6)',
-  cursor: 'pointer',
-  borderRadius: '40px',
-  fontWeight: 'bold'
-}
-
-const publicationContainerStyle = {
-  padding: '20px 0px',
+function Publications({
+  profile
+}: {
+  profile: any
+}) {
+  let { data: publications } = usePublications({
+    profileId: profile.id,
+    limit: 10,
+  })
+  publications = publications?.map(publication => {
+    if (publication.__typename === 'Mirror') {
+      return publication.mirrorOf
+    } else {
+      return publication
+    }
+  })
+  return (
+    <>
+      {
+        publications?.map((pub: any, index: number) => (
+          <div key={index} className="py-4 bg-zinc-900 rounded mb-3 px-4">
+            <p>{pub.metadata.content}</p>
+          </div>
+        ))
+    }
+    </>
+  )
 }
 
 const profileContainerStyle = {
   display: 'flex',
-  flexDirection: 'column',
+  flexDirection: 'column' as 'column',
   alignItems: 'flex-start',
   padding: '20px  60px'
 }
+
 ```
 
 ### Testing it out
