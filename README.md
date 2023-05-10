@@ -334,8 +334,8 @@ function Publications({
       return publication
     }
   })
-  console.log('publications: ', publications)
-  return (
+
+return (
     <>
       {
         publications?.map((pub: any, index: number) => (
@@ -377,6 +377,5 @@ Consider diving into authentication, modules, or learning about gasless transact
 
 Also consider adding the following features to your new app:
 
-- Following a user
 - Searching for users
 - Creating a post
