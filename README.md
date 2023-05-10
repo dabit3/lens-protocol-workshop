@@ -33,8 +33,6 @@ const nextConfig = {
   experimental: {
     appDir: true,
   },
-  reactStrictMode: true,
-  swcMinify: true,
   images: {
     domains: [
       'ipfs.infura.io',
@@ -235,8 +233,6 @@ export default function Profile() {
 
   const { data: profile } = useProfile({ handle })
 
-  console.log('profile: ', profile)
-
   useEffect(() => {
     checkConnection()
   }, [handle])
@@ -338,24 +334,29 @@ function Publications({
       return publication
     }
   })
+  console.log('publications: ', publications)
   return (
     <>
       {
         publications?.map((pub: any, index: number) => (
           <div key={index} className="py-4 bg-zinc-900 rounded mb-3 px-4">
             <p>{pub.metadata.content}</p>
+            {
+              pub.metadata?.media[0]?.original && ['image/jpeg', 'image/png'].includes(pub.metadata?.media[0]?.original.mimeType) && (
+                <Image
+                  width="400"
+                  height="400"
+                  alt={profile.handle}
+                  className='rounded-xl mt-6 mb-2'
+                  src={formatPicture(pub.metadata.media[0])}
+                />
+              )
+            }
           </div>
         ))
     }
     </>
   )
-}
-
-const profileContainerStyle = {
-  display: 'flex',
-  flexDirection: 'column' as 'column',
-  alignItems: 'flex-start',
-  padding: '20px  60px'
 }
 
 ```
