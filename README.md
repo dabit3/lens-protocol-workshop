@@ -10,6 +10,8 @@ The app we'll be building will have the following features:
 
 By the end of this tutorial you'll have a good understanding of how to get started building on Lens with TypeScript and the Lens SDK.
 
+![Lens Dev Stack](sdk.png)
+
 ### Getting started
 
 To get started, create a new Next.js application:
