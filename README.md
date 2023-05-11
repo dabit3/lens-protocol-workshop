@@ -1,6 +1,14 @@
 ## Lens Protocol Workshop
 
-In this workshop you'll learn how to use Next.js and Lens Protocol to build out a basic social media application.
+In this workshop you'll learn how to use Next.js, TypeScript, Lens Protocol, and the [Lens SDK](https://docs.lens.xyz/docs/sdk-react-intro) to build out a basic social media application.
+
+The app we'll be building will have the following features:
+
+1. When the app loads, it will render a list of recommended users from the Lens API along with their profile picture and bio
+2. When we click on a user, we will navigate to a detail view where we will see all of their publications as well as more profile details
+3. The user profile view will also have the option for a user to sign in and follow another user.
+
+By the end of this tutorial you'll have a good understanding of how to get started building on Lens with TypeScript and the Lens SDK.
 
 ### Getting started
 
@@ -40,6 +48,7 @@ const nextConfig = {
       'lens.infura-ipfs.io',
       'source.unsplash.com',
       'arweave.net',
+      'images.lens.phaver.com',
       ""
     ],
   },
