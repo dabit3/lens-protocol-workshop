@@ -1,6 +1,6 @@
 ## Lens Protocol Workshop
 
-In this workshop you'll learn how to use Next.js, TypeScript, Lens Protocol, and the [Lens SDK](https://docs.lens.xyz/docs/sdk-react-intro) to build out a basic social media application.
+In this workshop you'll learn how to use Next.js, TypeScript, Lens Protocol, and the [Lens SDK](https://docs.lens.xyz/docs/sdk-react-intro) to build out a social application.
 
 The app we'll be building will have the following features:
 
