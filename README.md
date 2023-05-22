@@ -32,7 +32,7 @@ Next, change into the new directory and install the following dependencies:
 ```sh
 cd lens-app
 
-npm install @lens-protocol/react-web ethers@5 wagmi@0.12.13 @lens-protocol/wagmi
+npm install @lens-protocol/react-web ethers@legacy-v5 wagmi@0.12.7 @lens-protocol/wagmi
 ```
 
 Now we need to configure Next.js to allow IPFS and other file sources. To do so, open `next.config.js` and replace what's there with the following code:
