@@ -35,30 +35,6 @@ cd lens-app
 npm install @lens-protocol/react-web ethers@legacy-v5 wagmi@0.12.7 @lens-protocol/wagmi
 ```
 
-Now we need to configure Next.js to allow IPFS and other file sources. To do so, open `next.config.js` and replace what's there with the following code:
-
-```javascript
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  experimental: {
-    appDir: true,
-  },
-  images: {
-    domains: [
-      'ipfs.infura.io',
-      'statics-polygon-lens-staging.s3.eu-west-1.amazonaws.com',
-      'lens.infura-ipfs.io',
-      'source.unsplash.com',
-      'arweave.net',
-      'images.lens.phaver.com',
-      ""
-    ],
-  },
-}
-
-module.exports = nextConfig
-```
-
 ## app/layout.tsx
 
 Next, we want to configure our app to use the Lens SDK. 
@@ -141,7 +117,6 @@ To do so, open `app/page.tsx` and add the following code:
 ```typescript
 // app/page.tsx
 'use client'
-import Image from 'next/image'
 import { useExploreProfiles } from '@lens-protocol/react-web'
 import Link from 'next/link'
 import { formatPicture } from '../utils'
@@ -160,7 +135,7 @@ export default function Home() {
             <div className='my-14'>
               {
                 profile.picture && profile.picture.__typename === 'MediaSet' ? (
-                  <Image
+                  <img
                     src={formatPicture(profile.picture)}
                     width="120"
                     height="120"
@@ -228,7 +203,6 @@ In this file, add the following code:
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { ethers } from 'ethers'
-import Image from 'next/image'
 import { useProfile, usePublications } from '@lens-protocol/react-web'
 import { formatPicture } from '../../../utils'
 import ABI from '../../../abi.json'
@@ -304,7 +278,7 @@ export default function Profile() {
         }
         {
           profile.picture?.__typename === 'MediaSet' && (
-            <Image
+            <img
               width="200"
               height="200"
               alt={profile.handle}
@@ -354,7 +328,7 @@ return (
             <p>{pub.metadata.content}</p>
             {
               pub.metadata?.media[0]?.original && ['image/jpeg', 'image/png'].includes(pub.metadata?.media[0]?.original.mimeType) && (
-                <Image
+                <img
                   width="400"
                   height="400"
                   alt={profile.handle}
@@ -369,7 +343,6 @@ return (
     </>
   )
 }
-
 ```
 
 ### Testing it out
