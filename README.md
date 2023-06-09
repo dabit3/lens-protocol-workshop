@@ -94,11 +94,9 @@ In the root directory, create a file named `utils.ts` and add the following code
 export function formatPicture(picture: any) {
   if (picture.__typename === 'MediaSet') {
     if (picture.original.url.startsWith('ipfs://')) {
-      let result = picture.original.url.substring(7, picture.original.url.length)
-      return `http://lens.infura-ipfs.io/ipfs/${result}`
+      return picture.original.url.replace('ipfs://', 'https://lens.infura-ipfs.io/ipfs/)
     } else if (picture.original.url.startsWith('ar://')) {
-      let result = picture.original.url.substring(4, picture.original.url.length)
-      return `http://arweave.net/${result}`
+      return picture.original.url.replace('ar://', 'https://arweave.net/')
     } else {
       return picture.original.url
     }
@@ -177,17 +175,6 @@ We also want go give users a way to sign in and follow users.
 
 This functionality does not yet exist, so let's create it.
 
-
-### Adding the ABI
-
-Next, we'll need the ABI from the contract we'll be interacting with to allow users to follow other users.
-
-Create a file named `abi.json` at the root of the project.
-
-Next, copy the ABI from the [contract](https://polygonscan.com/address/0x20f4D7DdeE23029048C53B42dc73A02De19F1c9E#ddExportABI) located [here](https://gist.github.com/dabit3/71d8fac2ea4081f32903cb479ea2881a) into this file and save it.
-
-### Profile view
-
 In the `app` directory, create a new folder named `profile`.
 
 In the `profile` directory create a new folder named `[id]`.
@@ -199,85 +186,25 @@ In this file, add the following code:
 ```typescript
 // app/profile/[id]/page.tsx
 'use client'
-
-import { useState, useEffect } from 'react'
-import { usePathname } from 'next/navigation'
-import { ethers } from 'ethers'
-import { useProfile, usePublications } from '@lens-protocol/react-web'
-import { formatPicture } from '../../../utils'
-import ABI from '../../../abi.json'
-
-const CONTRACT_ADDRESS = '0xDb46d1Dc155634FbC732f92E853b10B288AD5a1d'
+import { usePathname } from 'next/navigation';
+import {
+  useProfile, usePublications, Profile
+} from '@lens-protocol/react-web';
+import { formatPicture } from '../../../utils';
 
 export default function Profile() {
-  const [connected, setConnected] = useState<boolean>(false)
-  const [account, setAccount] = useState('')
-
   const pathName = usePathname()
   const handle = pathName?.split('/')[2]
 
-  const { data: profile } = useProfile({ handle })
+  let { data: profile, loading } = useProfile({ handle })
 
-  useEffect(() => {
-    checkConnection()
-  }, [handle])
-
-  async function checkConnection() {
-    if (!window.ethereum) return
-    const provider = new ethers.providers.Web3Provider(window.ethereum as any)
-    const addresses = await provider.listAccounts();
-    if (addresses.length) {
-      setConnected(true)
-    } else {
-      setConnected(false)
-    }
-  }
-
-  async function connectWallet() {
-    if (!window.ethereum) return
-    const accounts = await window.ethereum.request({
-      method: "eth_requestAccounts"
-    })
-    console.log('accounts: ', accounts)
-    accounts[0]
-    setAccount(account)
-    setConnected(true)
-  }
-
-  function getSigner() {
-    const provider = new ethers.providers.Web3Provider(window.ethereum as any)
-    return provider.getSigner();
-  }
-
-  async function followUser() {
-    if (!profile) return
-    const contract = new ethers.Contract(
-      CONTRACT_ADDRESS,
-      ABI,
-      getSigner()
-    )
-
-    try {
-      const tx = await contract.follow([profile.id], [0x0])
-      await tx.wait()
-      console.log(`successfully followed ... ${profile.handle}`)
-    } catch (err) {
-      console.log('error: ', err)
-    }
-  }
-
-  if (!profile) return null
+  if (loading) return <p className="p-14">Loading ...</p>
 
   return (
     <div>
       <div className="p-14">
         {
-          !connected && (
-            <button className="bg-white text-black px-14 py-4 rounded-full mb-4" onClick={connectWallet}>Connect Wallet</button>
-          )
-        }
-        {
-          profile.picture?.__typename === 'MediaSet' && (
+          profile?.picture?.__typename === 'MediaSet' && (
             <img
               width="200"
               height="200"
@@ -287,17 +214,9 @@ export default function Profile() {
             />
           )
         }
-        <h1 className="text-3xl my-3">{profile.handle}</h1>
-        <h3 className="text-xl mb-4">{profile.bio}</h3>
-        <Publications profile={profile} />
-        {
-          connected && (
-            <button
-              className="bg-white text-black px-14 py-4 rounded-full"
-              onClick={followUser}
-            >Follow {profile.handle}</button>
-          )
-        }
+        <h1 className="text-3xl my-3">{profile?.handle}</h1>
+        <h3 className="text-xl mb-4">{profile?.bio}</h3>
+       { profile && <Publications profile={profile} />}
       </div>
     </div>
   )
@@ -306,7 +225,7 @@ export default function Profile() {
 function Publications({
   profile
 }: {
-  profile: any
+  profile: Profile
 }) {
   let { data: publications } = usePublications({
     profileId: profile.id,
@@ -320,7 +239,7 @@ function Publications({
     }
   })
 
-return (
+  return (
     <>
       {
         publications?.map((pub: any, index: number) => (
@@ -345,6 +264,13 @@ return (
 }
 ```
 
+### What's happening
+
+`useProfile` allows you to get a user's profile details by passing in a Lens handle or profile ID
+
+`usePublications` allows you to fetch a user's publications by passing in a profile
+
+
 ### Testing it out
 
 To run the app, run the following command:
@@ -353,11 +279,167 @@ To run the app, run the following command:
 npm run dev
 ```
 
+## Adding authentication and following a user
+
+Next, let's add some additional functionality that will allow a user to sign and and then follow another user.
+
+```typescript
+// app/profile/[id]/page.tsx
+'use client'
+import { usePathname } from 'next/navigation';
+// new imports
+import {
+  useProfile, usePublications, useFollow, useWalletLogin, useWalletLogout, useActiveProfile,
+  Profile, ProfileOwnedByMe, NotFoundError
+} from '@lens-protocol/react-web';
+import { useAccount, useConnect, useDisconnect } from 'wagmi';
+import { InjectedConnector } from 'wagmi/connectors/injected';
+import { formatPicture } from '../../../utils';
+
+export default function Profile() {
+  // new hooks
+  const { execute: login } = useWalletLogin();
+  const { execute: logout } = useWalletLogout();
+  const { data: wallet } = useActiveProfile();
+  const { isConnected } = useAccount();
+  const { disconnectAsync } = useDisconnect();
+  
+  const pathName = usePathname()
+  const handle = pathName?.split('/')[2]
+
+  let { data: profile, loading } = useProfile({ handle })
+
+  const { connectAsync } = useConnect({
+    connector: new InjectedConnector(),
+  });
+  
+  // new login function
+  const onLoginClick = async () => {
+    if (isConnected) {
+      await disconnectAsync();
+    }
+    const { connector } = await connectAsync();
+    if (connector instanceof InjectedConnector) {
+      const signer = await connector.getSigner();
+      await login(signer);
+    }
+  }
+
+  if (loading) return <p className="p-14">Loading ...</p>
+
+  return (
+    <div>
+      <div className="p-14">
+        {
+          !wallet && (
+            <button className="bg-white text-black px-14 py-4 rounded-full mb-4" onClick={onLoginClick}>Sign In</button>
+          )
+        }
+        {
+          wallet && profile && (
+            <>
+            <FollowComponent
+              isConnected={isConnected}
+              profile={profile}
+              wallet={wallet}
+            />
+            <button className="ml-4 bg-white text-black px-14 py-4 rounded-full mb-4" onClick={logout}>Sign Out</button>
+            </>
+          )
+        }
+        {
+          profile && profile.picture?.__typename === 'MediaSet' && (
+            <img
+              width="200"
+              height="200"
+              alt={profile.handle}
+              className='rounded-xl'
+              src={formatPicture(profile.picture)}
+            />
+          )
+        }
+        <h1 className="text-3xl my-3">{profile?.handle}</h1>
+        <h3 className="text-xl mb-4">{profile?.bio}</h3>
+        { profile && <Publications profile={profile} /> }
+      </div>
+    </div>
+  )
+}
+
+// new component
+function FollowComponent({
+  wallet,
+  profile,
+  isConnected
+} : {
+  isConnected: boolean,
+  profile: Profile,
+  wallet: ProfileOwnedByMe
+}) {
+  const { execute: follow } = useFollow({ followee: profile, follower: wallet  });
+  return (
+    <>
+      {
+        isConnected && (
+          <button
+            className="bg-white text-black px-14 py-4 rounded-full"
+            onClick={follow}
+          >Follow {profile.handle}</button>
+        )
+      }
+    </>
+  )
+}
+
+function Publications({
+  profile
+}: {
+  profile: Profile
+}) {
+  let { data: publications } = usePublications({
+    profileId: profile.id,
+    limit: 20,
+  })
+  publications = publications?.map(publication => {
+    if (publication.__typename === 'Mirror') {
+      return publication.mirrorOf;
+    } else {
+      return publication;
+    }
+  });
+
+  return (
+    <>
+      {
+        publications?.map((pub: any, index: number) => (
+          <div key={index} className="py-4 bg-zinc-900 rounded mb-3 px-4">
+            <p>{pub.metadata.content}</p>
+            {
+              pub.metadata?.media[0]?.original && ['image/jpeg', 'image/png'].includes(pub.metadata?.media[0]?.original.mimeType) && (
+                <img
+                  width="400"
+                  height="400"
+                  alt={profile.handle}
+                  className='rounded-xl mt-6 mb-2'
+                  src={formatPicture(pub.metadata.media[0])}
+                />
+              )
+            }
+          </div>
+        ))
+    }
+    </>
+  )
+}
+```
+
+When you run the app, you should now be able to sign in and follow another user.
+
 ### Next Steps
 
 Now that you've built your first basic application, it's time to explore more of the Lens API!
 
-Consider diving into authentication, modules, or learning about gasless transactions and the dispatcher.
+Consider diving into modules or learning about gasless transactions and the dispatcher.
 
 Also consider adding the following features to your new app:
 
