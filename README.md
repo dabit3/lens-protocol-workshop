@@ -32,7 +32,7 @@ Next, change into the new directory and install the following dependencies:
 ```sh
 cd lens-app
 
-npm install @lens-protocol/react-web ethers@legacy-v5 wagmi@0.12.7 @lens-protocol/wagmi
+npm install @lens-protocol/react-web @lens-protocol/wagmi wagmi viem
 ```
 
 ## app/layout.tsx
@@ -46,19 +46,32 @@ This is a decent amount of code, but once it's set up it makes using the SDK ver
 Update `app/layout.tsx` with the following code:
 
 ```tsx
-'use client'
-import './globals.css'
-import { configureChains, createClient, WagmiConfig } from 'wagmi'
-import { mainnet, polygon } from 'wagmi/chains'
-import { publicProvider } from 'wagmi/providers/public'
-import { LensProvider, LensConfig, production } from '@lens-protocol/react-web'
-import { bindings as wagmiBindings } from '@lens-protocol/wagmi'
-const { provider, webSocketProvider } = configureChains([polygon, mainnet], [publicProvider()])
+// app/layout.tsx
+"use client";
+import "./globals.css";
+import { polygonMumbai, polygon } from "wagmi/chains";
+import { configureChains, createConfig, WagmiConfig } from "wagmi";
+import { publicProvider } from "wagmi/providers/public";
+import { InjectedConnector } from "wagmi/connectors/injected";
+import { LensProvider, LensConfig, production } from "@lens-protocol/react-web";
+import { bindings as wagmiBindings } from "@lens-protocol/wagmi";
 
-const client = createClient({
+const { publicClient, webSocketPublicClient } = configureChains(
+  [polygonMumbai, polygon],
+  [publicProvider()]
+);
+
+const config = createConfig({
   autoConnect: true,
-  provider,
-  webSocketProvider,
+  publicClient,
+  webSocketPublicClient,
+  connectors: [
+    new InjectedConnector({
+      options: {
+        shimDisconnect: false,
+      },
+    }),
+  ],
 });
 
 const lensConfig: LensConfig = {
@@ -69,17 +82,17 @@ const lensConfig: LensConfig = {
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="en">
-      <WagmiConfig client={client}>
+      <WagmiConfig config={config}>
         <LensProvider config={lensConfig}>
           <body>{children}</body>
         </LensProvider>
-     </WagmiConfig>
+      </WagmiConfig>
     </html>
-  )
+  );
 }
 ```
 
