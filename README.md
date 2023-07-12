@@ -35,6 +35,12 @@ cd lens-app
 npm install @lens-protocol/react-web @lens-protocol/wagmi wagmi viem
 ```
 
+Next, update the `tsconfig.json` and add the following to the `compilerOptions` configuration:
+
+```json
+    "noImplicitAny": false,
+```
+
 ## app/layout.tsx
 
 Next, we want to configure our app to use the Lens SDK. 
@@ -167,24 +173,20 @@ This functionality does not yet exist, so let's create it.
 
 In the `app` directory, create a new folder named `profile`.
 
-In the `profile` directory create a new folder named `[id]`.
+In the `profile` directory create a new folder named `[handle]`.
 
-In the `[id]` folder, create a new file named `page.tsx`.
+In the `[handle]` folder, create a new file named `page.tsx`.
 
 In this file, add the following code:
 
 ```typescript
-// app/profile/[id]/page.tsx
+// app/profile/[handle]/page.tsx
 'use client'
-import { usePathname } from 'next/navigation';
 import {
   useProfile, usePublications, Profile
 } from '@lens-protocol/react-web';
 
-export default function Profile() {
-  const pathName = usePathname()
-  const handle = pathName?.split('/')[2]
-
+export default function Profile({ params: { handle }}) {
   let { data: profile, loading } = useProfile({ handle })
 
   if (loading) return <p className="p-14">Loading ...</p>
@@ -273,9 +275,8 @@ npm run dev
 Next, let's add some additional functionality that will allow a user to sign and and then follow another user.
 
 ```typescript
-// app/profile/[id]/page.tsx
+// app/profile/[handle]/page.tsx
 "use client";
-import { usePathname } from "next/navigation";
 // new imports
 import {
   useProfile,
@@ -285,22 +286,20 @@ import {
   useWalletLogout,
   useActiveProfile,
   Profile,
-  ProfileOwnedByMe,
-  NotFoundError,
+  ProfileOwnedByMe
 } from "@lens-protocol/react-web";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
 import { InjectedConnector } from "wagmi/connectors/injected";
 
-export default function Profile() {
+export default function Profile({
+  params: { handle }
+}) {
   // new hooks
   const { execute: login } = useWalletLogin();
   const { execute: logout } = useWalletLogout();
   const { data: wallet } = useActiveProfile();
   const { isConnected } = useAccount();
   const { disconnectAsync } = useDisconnect();
-
-  const pathName = usePathname();
-  const handle = pathName?.split("/")[2];
 
   let { data: profile, loading } = useProfile({ handle });
 
