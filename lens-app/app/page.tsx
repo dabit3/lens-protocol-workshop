@@ -1,6 +1,5 @@
 // app/page.tsx
 'use client'
-import Image from 'next/image'
 import { useExploreProfiles } from '@lens-protocol/react-web'
 import Link from 'next/link'
 import { formatPicture } from '../utils'
@@ -19,7 +18,7 @@ export default function Home() {
             <div className='my-14'>
               {
                 profile.picture && profile.picture.__typename === 'MediaSet' ? (
-                  <Image
+                  <img
                     src={formatPicture(profile.picture)}
                     width="120"
                     height="120"
