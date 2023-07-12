@@ -1,6 +1,5 @@
 // app/profile/[handle]/page.tsx
 "use client";
-import { usePathname } from "next/navigation";
 // new imports
 import {
   useProfile,
@@ -10,22 +9,20 @@ import {
   useWalletLogout,
   useActiveProfile,
   Profile,
-  ProfileOwnedByMe,
-  NotFoundError,
+  ProfileOwnedByMe
 } from "@lens-protocol/react-web";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
 import { InjectedConnector } from "wagmi/connectors/injected";
 
-export default function Profile() {
+export default function Profile({
+  params: { handle }
+}) {
   // new hooks
   const { execute: login } = useWalletLogin();
   const { execute: logout } = useWalletLogout();
   const { data: wallet } = useActiveProfile();
   const { isConnected } = useAccount();
   const { disconnectAsync } = useDisconnect();
-
-  const pathName = usePathname();
-  const handle = pathName?.split("/")[2];
 
   let { data: profile, loading } = useProfile({ handle });
 
@@ -156,3 +153,4 @@ function Publications({ profile }: { profile: Profile }) {
     </>
   );
 }
+
