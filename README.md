@@ -243,7 +243,7 @@ function Publications({
                   height="400"
                   alt={profile.handle}
                   className='rounded-xl mt-6 mb-2'
-                  src={pub.metadata.media[0]}
+                  src={pub.metadata.media[0].original.url}
                 />
               )
             }
@@ -422,7 +422,7 @@ function Publications({ profile }: { profile: Profile }) {
                 height="400"
                 alt={profile.handle}
                 className="rounded-xl mt-6 mb-2"
-                src={pub.metadata.media[0]}
+                src={pub.metadata.media[0].original.url}
               />
             )}
         </div>
