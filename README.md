@@ -38,7 +38,7 @@ npm install @lens-protocol/react-web @lens-protocol/wagmi wagmi viem
 Next, update the `tsconfig.json` and add the following to the `compilerOptions` configuration:
 
 ```json
-    "noImplicitAny": false,
+"noImplicitAny": false,
 ```
 
 ## app/layout.tsx
