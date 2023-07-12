@@ -83,29 +83,6 @@ export default function RootLayout({
 }
 ```
 
-## format picture utility
-
-Next, we'll need a helper function to format the pictures coming back to use with IPFS and Arweave gateways. By default, we'll only have the hash.
-
-In the root directory, create a file named `utils.ts` and add the following code:
-
-```typescript
-// utils.ts
-export function formatPicture(picture: any) {
-  if (picture.__typename === 'MediaSet') {
-    if (picture.original.url.startsWith('ipfs://')) {
-      return picture.original.url.replace('ipfs://', 'https://lens.infura-ipfs.io/ipfs/')
-    } else if (picture.original.url.startsWith('ar://')) {
-      return picture.original.url.replace('ar://', 'https://arweave.net/')
-    } else {
-      return picture.original.url
-    }
-  } else {
-    return picture
-  }
-}
-```
-
 ## app/page.tsx
 
 Next, let's query for profiles and render them in our app.
@@ -117,7 +94,6 @@ To do so, open `app/page.tsx` and add the following code:
 'use client'
 import { useExploreProfiles } from '@lens-protocol/react-web'
 import Link from 'next/link'
-import { formatPicture } from '../utils'
 
 export default function Home() {
   const { data } = useExploreProfiles({
@@ -134,7 +110,7 @@ export default function Home() {
               {
                 profile.picture && profile.picture.__typename === 'MediaSet' ? (
                   <img
-                    src={formatPicture(profile.picture)}
+                    src={profile.picture.original.url}
                     width="120"
                     height="120"
                     alt={profile.handle}
@@ -157,7 +133,8 @@ export default function Home() {
 
 In `useExploreProfiles`, we are calling the Lens API to fetch a list of recommended profiles.
 
-The `formatPicture` function updates the image metadata to provide either an IPFS or Arweave gateway to each hash.
+Once the profiles are returned, we map over them, rendering each profile with their profile details and a link to view the individual profile which we'll build out later.
+
 
 ### Testing it out
 
@@ -190,7 +167,6 @@ import { usePathname } from 'next/navigation';
 import {
   useProfile, usePublications, Profile
 } from '@lens-protocol/react-web';
-import { formatPicture } from '../../../utils';
 
 export default function Profile() {
   const pathName = usePathname()
@@ -210,7 +186,7 @@ export default function Profile() {
               height="200"
               alt={profile.handle}
               className='rounded-xl'
-              src={formatPicture(profile.picture)}
+              src={profile.picture.original.url}
             />
           )
         }
@@ -252,7 +228,7 @@ function Publications({
                   height="400"
                   alt={profile.handle}
                   className='rounded-xl mt-6 mb-2'
-                  src={formatPicture(pub.metadata.media[0])}
+                  src={pub.metadata.media[0]}
                 />
               )
             }
@@ -294,7 +270,6 @@ import {
 } from '@lens-protocol/react-web';
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import { InjectedConnector } from 'wagmi/connectors/injected';
-import { formatPicture } from '../../../utils';
 
 export default function Profile() {
   // new hooks
@@ -354,7 +329,7 @@ export default function Profile() {
               height="200"
               alt={profile.handle}
               className='rounded-xl'
-              src={formatPicture(profile.picture)}
+              src={profile.picture.original.url}
             />
           )
         }
@@ -421,7 +396,7 @@ function Publications({
                   height="400"
                   alt={profile.handle}
                   className='rounded-xl mt-6 mb-2'
-                  src={formatPicture(pub.metadata.media[0])}
+                  src={pub.metadata.media[0]}
                 />
               )
             }
