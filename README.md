@@ -235,8 +235,10 @@ import {
 } from '@lens-protocol/react-web'
 
 export default function Profile({ params: { handle }}) {
+  const namespace = handle.split('.')[1]
+  handle = handle.split('.')[0]
   let { data: profile, loading } = useProfile({
-    forHandle: `lens/${handle}`
+    forHandle: `${namespace}/${handle}`
   })
   if (loading) return <p className="p-14">Loading ...</p>
 
