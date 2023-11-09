@@ -30,8 +30,6 @@ npx create-next-app lens-app
 Next, change into the new directory and install the following dependencies:
 
 ```sh
-cd lens-app
-
 npm install @lens-protocol/react-web@alpha @lens-protocol/wagmi@alpha ethers@legacy-v5 wagmi viem @web3modal/wagmi
 ```
 
